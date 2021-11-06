@@ -9,33 +9,36 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-using namespace cv;
-using namespace std;
 int main()
 {
     std::cout << "PROJECT1" << std::endl;
     std::string projectPath = "E:/dev/vision_par_ordinateur/5A-ComputerVision/disparity/resources/antoine.png";
     // Read the image file
-    Mat image = imread(projectPath);
+    cv::Mat image = cv::imread(projectPath);
 
     if (image.empty()) // Check for failure
     {
-        cout << "Could not open or find the image" << endl;
+        std::cout << "Could not open or find the image" << std::endl;
         system("pause"); //wait for any key press
         return -1;
     }
 
-    String windowName = "My HelloWorld Window"; //Name of the window
+    std::string windowName = "My HelloWorld Window"; //Name of the window
 
-    namedWindow(windowName); // Create a window
+    cv::namedWindow(windowName); // Create a window
 
     imshow(windowName, image); // Show our image inside the created window.
 
-    waitKey(0); // Wait for any keystroke in the window
+    cv::waitKey(0); // Wait for any keystroke in the window
 
-    destroyWindow(windowName); //destroy the created window
+    cv::destroyWindow(windowName); //destroy the created window
 
     return 0;
+}
+
+void draw()
+{
+
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

@@ -3,4 +3,7 @@
   <ItemGroup>
     <ClCompile Include="5A-ComputerVision.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="resources\pote1.mp4" />
+  </ItemGroup>
 </Project>
