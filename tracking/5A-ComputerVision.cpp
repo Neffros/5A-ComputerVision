@@ -18,6 +18,7 @@ cv::Scalar color;
 cv::Mat prevInput;
 std::vector<cv::Point2f> nextPoints;
 std::vector<uchar> features_found;
+std::vector<float> errors;
 
 void MatType(cv::Mat inputMat)
 {
@@ -47,8 +48,8 @@ void detectPoints(cv::Mat& img)
     cv::cvtColor(img, grayInput, cv::COLOR_BGR2GRAY);
     cv::goodFeaturesToTrack(grayInput, prevPoints, 500, 0.01, 10, cv::Mat(), 3, false, 0.04);
 }
-std::vector<cv::Point2f> purgePoints(std::vector<cv::Point2f>& points,
-    std::vector<uchar>& status) {
+std::vector<cv::Point2f> purgePoints(std::vector<cv::Point2f>& points,std::vector<uchar>& status) 
+{
     std::vector<cv::Point2f> result;
     for (int i = 0; i < points.size(); ++i) {
         if (status[i] > 0)result.push_back(points[i]);
@@ -60,25 +61,35 @@ void trackPoints()
 {
     if (!prevInput.empty())
     {
-        prevPoints.insert(prevPoints.end(), nextPoints.begin(), nextPoints.end());
+        prevPoints = nextPoints;
+        //prevPoints.insert(prevPoints.end(), nextPoints.begin(), nextPoints.end());
         //ifprevopints < min???
-        if (prevPoints.size() < 10)
+        if (prevPoints.size() < 30)
+        {
             detectPoints(prevInput);
-        if (prevPoints.size() < 10)
-            return;
-        cv::calcOpticalFlowPyrLK(prevInput, nextInput, prevPoints, nextPoints, features_found, cv::noArray());
+            if (prevPoints.size() < 30)
+                return;
+        }
 
+        //std::cout << "calcoptical" << std::endl;
+        cv::calcOpticalFlowPyrLK(prevInput, nextInput, prevPoints, nextPoints, features_found, errors);
+        
+        prevPoints = purgePoints(prevPoints, features_found);
+        nextPoints = purgePoints(nextPoints, features_found);
 
     }
+    prevInput = nextInput.clone();
 }
 
 void draw()
 {
     cv::Mat img = nextInput.clone();
-    for (auto point : prevPoints)
+    for (int i = 0; i < nextPoints.size(); ++i)
     {
-        cv::circle(img, point, 4, (255, 0, 0));
+        cv::circle(img, nextPoints[i], 4, (255, 0, 0));
+        cv::line(img, nextPoints[i], prevPoints[i], (255, 0, 0));
     }
+
     cv::imshow("input", img);
 }
 
@@ -101,10 +112,11 @@ void video(const char* videoname)
     while (!nextInput.empty())
     {
         //dosomething
-        detectPoints(nextInput);
+        trackPoints();
+        //detectPoints(nextInput);
         draw();
         cap >> nextInput;
-        if(cv::waitKey(10) >= 0) break;
+        if(cv::waitKey(16) >= 0) break;
     }
 }
 
@@ -135,7 +147,7 @@ int main()
 
     return 0;*/
     //const char* videoname = "E:/dev/vision_par_ordinateur/5A-ComputerVision/tracking/resources/pote1.mp4";
-    const char* videoname = "./resources/pote1.mp4";
+    const char* videoname = "./resources/tracking_2.mp4";
     //const char* videoname = "";
     video(videoname);
     return 0;

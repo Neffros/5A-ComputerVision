@@ -23,6 +23,7 @@
   </ItemGroup>
   <ItemGroup>
     <Media Include="resources\pote1.mp4" />
+    <Media Include="resources\tracking_2.mp4" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

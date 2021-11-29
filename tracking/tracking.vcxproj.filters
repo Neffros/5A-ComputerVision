@@ -5,5 +5,6 @@
   </ItemGroup>
   <ItemGroup>
     <Media Include="resources\pote1.mp4" />
+    <Media Include="resources\tracking_2.mp4" />
   </ItemGroup>
 </Project>
