@@ -1,6 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="5A-ComputerVision.cpp" />
+    <ClCompile Include="disparity.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\image1.jpg" />
+    <Image Include="resources\image2.jpg" />
+    <Image Include="resources\antoine.png" />
   </ItemGroup>
 </Project>

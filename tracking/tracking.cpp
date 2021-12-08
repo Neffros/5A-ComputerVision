@@ -105,7 +105,6 @@ void detectPoints(cv::Mat& img, cv::Mat mask)
 {
     cv::cvtColor(img, grayInput, cv::COLOR_BGR2GRAY);
 
-
     cv::goodFeaturesToTrack(grayInput, prevPoints, 500, 0.01, 10, mask);
 }
 std::vector<cv::Point2f> purgePoints(std::vector<cv::Point2f>& points,std::vector<uchar>& status) 

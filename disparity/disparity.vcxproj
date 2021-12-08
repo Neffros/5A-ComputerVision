@@ -19,7 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="5A-ComputerVision.cpp" />
+    <ClCompile Include="disparity.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\antoine.png" />
+    <Image Include="resources\image1.jpg" />
+    <Image Include="resources\image2.jpg" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
