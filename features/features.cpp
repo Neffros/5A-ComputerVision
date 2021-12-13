@@ -20,7 +20,7 @@ std::vector<cv::KeyPoint> sceneKeyPoints;
 cv::Mat objectDescriptor;
 cv::Mat sceneDescriptor;
 
-cv::Ptr<cv::ORB> orb = cv::ORB::create(cv::NORM_HAMMING);
+cv::Ptr<cv::ORB> orb = cv::ORB::create();
 
 cv::BFMatcher bfMatcher;
 std::vector<std::vector<cv::DMatch>> matches;
@@ -35,15 +35,21 @@ void computeImage()
 }
 void computeVideo()
 {
+    matches.clear();
+    filteredMatches.clear();
+
     orb->detect(nextInput, sceneKeyPoints);
     orb->compute(nextInput, sceneKeyPoints, sceneDescriptor);
     bfMatcher.knnMatch(objectDescriptor, sceneDescriptor, matches, 2);
     //bfMatcher.knnMatch(objectDescriptor, sceneDescriptor, matches,2);
     //std::cout << matches[0][0].distance << " - " << matches[0][1].distance << std::endl;
-    /*for (auto match : matches)
+    for (auto match : matches)
     {
-        if(match[1].distance < match[0].distance)
-    }*/
+        if (match[0].distance < 0.55 * match[1].distance)
+        {
+            filteredMatches.push_back(match[0]);
+        }
+    }
     //cv::imshow("object", nextInput);
     //cv::waitKey(0);
 }
@@ -51,15 +57,17 @@ void draw()
 {
     cv::Mat img = nextInput.clone();
 
-    cv::drawMatches(object, objectKeyPoints, nextInput, sceneKeyPoints, matches, output);
-
-    for (auto keyPoint : sceneKeyPoints)
+    /*for (auto keyPoint : sceneKeyPoints)
     {
-        cv::circle(output, keyPoint.pt, 5, cv::Scalar(255, 255, 255));
-    }
+        cv::circle(img, keyPoint.pt, 5, cv::Scalar(255, 255, 255));
+    }*/
+
+    cv::drawMatches(object, objectKeyPoints, nextInput, sceneKeyPoints, filteredMatches, img);
+
+
     //draw extra things here
     //cv::imshow("scene", output);
-    cv::imshow("scene", output);
+    cv::imshow("scene", img);
 }
 
 void video(const std::string videoname = "")
