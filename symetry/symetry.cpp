@@ -18,7 +18,7 @@ std::string imageName = "f.jpg";
 
 float distanceCoeff = 0.65;
 
-cv::Ptr<cv::ORB> orb = cv::ORB::create(5000);
+cv::Ptr<cv::ORB> orb = cv::ORB::create(1000);
 cv::Ptr<cv::BFMatcher> bfMatcher = cv::BFMatcher::create();
 
 std::vector<cv::KeyPoint> imgKeyPoints;
@@ -46,6 +46,44 @@ void computeImage(cv::Mat img, cv::Mat flippedImg)
 			filteredMatches.push_back(match[0]);
 		}
 	}
+
+}
+
+void draw(cv::Mat img) 
+{
+	std::vector<cv::Point2f> points;
+	std::vector<cv::Point2f> flippedPoints;
+	std::vector<cv::Point2f> barycenters;
+
+
+	for (auto match : filteredMatches)
+	{
+		cv::Point2f point;
+		cv::Point2f flippedPoint;
+		cv::Point2f barycenterPoint;
+
+		point = imgKeyPoints[match.queryIdx].pt;
+		flippedPoint = flippedKeyPoints[match.trainIdx].pt;
+		flippedPoint.x = img.cols - flippedPoint.x;
+		barycenterPoint = cv::Point2f((point.x + flippedPoint.x) / 2, (point.y + flippedPoint.y) / 2);
+		
+		points.push_back(point);
+		flippedPoints.push_back(flippedPoint);
+		barycenters.push_back(barycenterPoint);
+	}
+	cv::Scalar green(0, 255, 0);
+	cv::Scalar redu(0, 0, 255);
+	for (auto i = 0; i < points.size(); ++i)
+	{
+		//cv::circle(img, points[i], 2, cv::Scalar(255, 255, 255));
+		//cv::circle(img, flippedPoints[i], 2, cv::Scalar(0, 0, 0));
+		cv::line(img, points[i], flippedPoints[i], green);
+		cv::circle(img, barycenters[i], 5, redu);
+	}
+
+	cv::imshow("res", img);
+	cv::waitKey();
+
 }
 int main()
 {
@@ -56,8 +94,7 @@ int main()
 	cv::flip(img, flippedImg, 1);
 
 	computeImage(img, flippedImg);
-	cv::drawMatches(img, imgKeyPoints, flippedImg, flippedKeyPoints, filteredMatches, res);
-	cv::imshow("res", res);
-	cv::waitKey();
+	draw(img);
+	//cv::drawMatches(img, imgKeyPoints, flippedImg, flippedKeyPoints, filteredMatches, res);
 	return 0;
 }
