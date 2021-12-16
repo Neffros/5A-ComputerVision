@@ -21,6 +21,9 @@
   <ItemGroup>
     <ClCompile Include="features.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\dorian.jpeg" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

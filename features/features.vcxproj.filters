@@ -3,4 +3,7 @@
   <ItemGroup>
     <ClCompile Include="features.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\dorian.jpeg" />
+  </ItemGroup>
 </Project>
