@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 #include <filesystem>
-
+#include <time.h>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -13,9 +13,10 @@ namespace fs = std::filesystem;
 using namespace cv;
 using namespace std;
 
-int nbORBtries = 2500;
-float distanceCoeff = 0.6;
-int minPointMatches = 4;
+int nbObjectsORBtries = 1200;
+int nbVideoORBtries = 1500;
+float distanceCoeff = 0.65;
+int minPointMatches = 7;
 
 cv::Mat nextInput;
 std::vector<cv::Mat> objects;
@@ -26,20 +27,24 @@ std::vector<cv::KeyPoint> objectKeyPoints;
 
 std::vector<cv::KeyPoint> sceneKeyPoints;
 
-std::vector<cv::Mat> objectsDescriptor;
 cv::Mat objectDescriptor;
+std::vector<cv::Mat> objectsDescriptor;
+
 cv::Mat sceneDescriptor;
 
-cv::Ptr<cv::ORB> orb = cv::ORB::create(nbORBtries);
+cv::Ptr<cv::ORB> orbObjects = cv::ORB::create(nbObjectsORBtries);
+cv::Ptr<cv::ORB> orbVideo = cv::ORB::create(nbVideoORBtries);
 
 cv::BFMatcher bfMatcher;
 std::vector<std::vector<cv::DMatch>> matches;
-std::vector<cv::DMatch> filteredMatches;
+std::vector<std::vector<cv::DMatch>> filteredMatches(2);
 
 std::vector<std::vector<Point2f>> objectsEdges;
 std::vector<Point2f> objectEdges;
 
-std::vector<cv::Scalar> colors(5);
+std::vector<string> objectNames;
+
+std::vector<cv::Scalar> colors(2);
 
 cv::Mat output;
 
@@ -57,7 +62,7 @@ std::vector<cv::Mat> getAllImagesInPath(std::string path)
             continue;
         }
         cv::Mat im;
-        
+        objectNames.push_back(entry.path().filename().string());
         im = imread(entry.path().string().c_str());
         images.push_back(im);
         i++;
@@ -67,8 +72,8 @@ std::vector<cv::Mat> getAllImagesInPath(std::string path)
 
 void computeImage(cv::Mat object)
 {
-    orb->detect(object, objectKeyPoints);
-    orb->compute(object, objectKeyPoints, objectDescriptor);
+    orbObjects->detect(object, objectKeyPoints);
+    orbObjects->compute(object, objectKeyPoints, objectDescriptor);
 
     objectsKeyPoints.push_back(objectKeyPoints);
     objectsDescriptor.push_back(objectDescriptor);
@@ -90,12 +95,12 @@ void drawBindingBox(cv::Mat& image, int index, bool enableOffset)
     std::vector<Point2f> objectPoints;
     std::vector<Point2f> scenePoints;
     std::vector<Point2f> sceneEdges(4);
-    for (auto match : filteredMatches)
+    for (auto match : filteredMatches[index])
     {
         objectPoints.push_back(objectsKeyPoints[index][match.trainIdx].pt); //reverse query and trainidx?
         scenePoints.push_back(sceneKeyPoints[match.queryIdx].pt);
     }
-    cv::Mat homography = cv::findHomography(objectPoints, scenePoints); //cv::RANSAC
+    cv::Mat homography = cv::findHomography(objectPoints, scenePoints);
     cv::perspectiveTransform(objectsEdges[index], sceneEdges, homography);
     /*cv::Point2f offset = {0,0};
     if (enableOffset)offset = Point2f(object.cols, 0);
@@ -112,10 +117,17 @@ void drawBindingBox(cv::Mat& image, int index, bool enableOffset)
 void computeVideo()
 {
     matches.clear();
-    filteredMatches.clear();
+    for (auto i = 0; i < filteredMatches.size(); ++i)
+    {
+        filteredMatches[i].clear();
+    }
+    /*for (auto imageMatches : filteredMatches)
+    {
+        imageMatches.clear();
+    }*/
 
-    orb->detect(nextInput, sceneKeyPoints);
-    orb->compute(nextInput, sceneKeyPoints, sceneDescriptor);
+    orbVideo->detect(nextInput, sceneKeyPoints);
+    orbVideo->compute(nextInput, sceneKeyPoints, sceneDescriptor);
 
     bfMatcher.knnMatch(sceneDescriptor, matches, 2);
 
@@ -123,10 +135,9 @@ void computeVideo()
     {
         if (match[0].distance < distanceCoeff * match[1].distance)
         {
-            filteredMatches.push_back(match[0]);
+            filteredMatches[match[0].imgIdx].push_back(match[0]);
         }
     }
-
     //cv::imshow("object", nextInput);
     //cv::waitKey(0);
 }
@@ -138,24 +149,17 @@ void draw()
     {
         cv::circle(img, keyPoint.pt, 5, cv::Scalar(255, 255, 255));
     }*/
-
     //cv::drawMatches(object, objectKeyPoints, nextInput, sceneKeyPoints, filteredMatches, img);
-    if (filteredMatches.size() > minPointMatches)
+    for (auto i = 0; i < filteredMatches.size(); ++i)
     {
-        for (auto i = 0; i < objects.size(); ++i)
+        if (filteredMatches[i].size() > minPointMatches)
         {
+            //std::cout << "image " << objectNames[i] << ", matches:" << filteredMatches[i].size() << std::endl;
+            std::cout << colors[i] << std::endl;
             drawBindingBox(img, i, false);
         }
     }
-
-
-    //draw extra things here
-    //cv::imshow("scene", output);
     cv::imshow("scene", img);
-    /*if (filteredMatches.size() > 6)
-    {
-        cv::waitKey();
-    }*/
 }
 
 void video(const std::string videoname = "")
@@ -177,36 +181,40 @@ void video(const std::string videoname = "")
 
         computeVideo();
         draw();
-        //for auto object : objects do compute video and draw based on that object in parameter
-
         if (cv::waitKey(16) >= 0) break;
     }
 }
 
 void initColors()
 {
-    colors[0] = (255, 255, 255);
-    colors[1] = (255, 255, 0);
-    colors[2] = (255, 0, 0);
-    colors[3] = (0, 0, 255);
-    colors[4] = (0, 255, 0);
+    for (auto i = 0; i < colors.size(); ++i)
+    {
+        cv::Scalar randomColor(
+            (double)std::rand() / RAND_MAX * 255,
+            (double)std::rand() / RAND_MAX * 255,
+            (double)std::rand() / RAND_MAX * 255
+        );
+
+        colors[i] = randomColor;
+    }
 }
 
 int main()
 {
-
-    std::string resourcePath = "E:/dev/vision_par_ordinateur/5A-ComputerVision/features/resources/set1/";
-    std::string objectPath = "naruto.jpg";
+    std::string resourcePath = "E:/dev/vision_par_ordinateur/5A-ComputerVision/features/resources/set2/";
     std::string videoPath = "video.mp4";
+    
+    srand(time(0));
 
     objects = getAllImagesInPath(resourcePath);
+    filteredMatches.resize(objects.size());
+    colors.resize(objects.size());
     for (auto object : objects)
     {
         getImageEdges(object);
         computeImage(object);
     }
     initColors();
-
     bfMatcher.add(objectsDescriptor);
     bfMatcher.train();
     //cv::waitKey();
