@@ -21,6 +21,29 @@
   <ItemGroup>
     <ClCompile Include="symetry.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\a.jpg" />
+    <Image Include="resources\b.jpg" />
+    <Image Include="resources\c.jpg" />
+    <Image Include="resources\d.jpg" />
+    <Image Include="resources\e.jpg" />
+    <Image Include="resources\f.jpg" />
+    <Image Include="resources\g.jpg" />
+    <Image Include="resources\h.jpg" />
+    <Image Include="resources\i.jpg" />
+    <Image Include="resources\j.jpg" />
+    <Image Include="resources\k.jpg" />
+    <Image Include="resources\l.jpg" />
+    <Image Include="resources\m.jpg" />
+    <Image Include="resources\n.jpg" />
+    <Image Include="resources\o.jpg" />
+    <Image Include="resources\p.jpg" />
+    <Image Include="resources\test.jpg" />
+    <Image Include="resources\test2.jpg" />
+    <Image Include="resources\test3.jpg" />
+    <Image Include="resources\test3b.jpg" />
+    <Image Include="resources\test3c.jpg" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
