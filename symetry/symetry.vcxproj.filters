@@ -25,5 +25,6 @@
     <Image Include="resources\test3.jpg" />
     <Image Include="resources\test3b.jpg" />
     <Image Include="resources\test3c.jpg" />
+    <Image Include="resources\image1.jpg" />
   </ItemGroup>
 </Project>

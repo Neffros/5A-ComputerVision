@@ -155,7 +155,6 @@ void draw()
         if (filteredMatches[i].size() > minPointMatches)
         {
             //std::cout << "image " << objectNames[i] << ", matches:" << filteredMatches[i].size() << std::endl;
-            std::cout << colors[i] << std::endl;
             drawBindingBox(img, i, false);
         }
     }
