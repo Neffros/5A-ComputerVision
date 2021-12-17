@@ -13,8 +13,8 @@ namespace fs = std::filesystem;
 using namespace cv;
 using namespace std;
 
-int nbObjectsORBtries = 1200;
-int nbVideoORBtries = 1500;
+int nbObjectsORBtries = 1000;
+int nbVideoORBtries = 2000;
 float distanceCoeff = 0.65;
 int minPointMatches = 7;
 
@@ -48,6 +48,7 @@ std::vector<cv::Scalar> colors(2);
 
 cv::Mat output;
 
+//récupère toutes les images dans le dossier visé
 std::vector<cv::Mat> getAllImagesInPath(std::string path)
 {
     std::vector<Mat> images;
@@ -79,6 +80,7 @@ void computeImage(cv::Mat object)
     objectsDescriptor.push_back(objectDescriptor);
 }
 
+//récupère le coin de l'image donné
 void getImageEdges(const cv::Mat image)
 {
     std::vector<cv::Point2f> res(4);
@@ -90,7 +92,7 @@ void getImageEdges(const cv::Mat image)
 
     objectsEdges.push_back(res);
 }
-void drawBindingBox(cv::Mat& image, int index, bool enableOffset)
+void drawBindingBox(cv::Mat& image, int index)
 {
     std::vector<Point2f> objectPoints;
     std::vector<Point2f> scenePoints;
@@ -100,15 +102,12 @@ void drawBindingBox(cv::Mat& image, int index, bool enableOffset)
         objectPoints.push_back(objectsKeyPoints[index][match.trainIdx].pt); //reverse query and trainidx?
         scenePoints.push_back(sceneKeyPoints[match.queryIdx].pt);
     }
+
+    //detemrine la matrice de transfomration entre l'image et l'objet dans la scène 
     cv::Mat homography = cv::findHomography(objectPoints, scenePoints);
     cv::perspectiveTransform(objectsEdges[index], sceneEdges, homography);
-    /*cv::Point2f offset = {0,0};
-    if (enableOffset)offset = Point2f(object.cols, 0);
-    //Dessine sur le flux vidéo
-    sceneEdges[0] += offset;
-    sceneEdges[1] += offset;
-    sceneEdges[2] += offset;
-    sceneEdges[3] += offset;*/
+
+    //dessine le carré autour de l'image dans la vidéo
     cv::line(image, sceneEdges[0], sceneEdges[1], colors[index], 5);
     cv::line(image, sceneEdges[1], sceneEdges[2], colors[index], 5);
     cv::line(image, sceneEdges[2], sceneEdges[3], colors[index], 5);
@@ -126,11 +125,14 @@ void computeVideo()
         imageMatches.clear();
     }*/
 
+    //trouve les features de la vidéo
     orbVideo->detect(nextInput, sceneKeyPoints);
     orbVideo->compute(nextInput, sceneKeyPoints, sceneDescriptor);
 
+    //cherches les matches entre toutes les images et la frame de la vidéo
     bfMatcher.knnMatch(sceneDescriptor, matches, 2);
 
+    //filtre pour n'avoir que des matches utilisables
     for (auto match : matches)
     {
         if (match[0].distance < distanceCoeff * match[1].distance)
@@ -138,24 +140,18 @@ void computeVideo()
             filteredMatches[match[0].imgIdx].push_back(match[0]);
         }
     }
-    //cv::imshow("object", nextInput);
-    //cv::waitKey(0);
 }
 void draw()
 {
     cv::Mat img = nextInput.clone();
 
-    /*for (auto keyPoint : sceneKeyPoints)
-    {
-        cv::circle(img, keyPoint.pt, 5, cv::Scalar(255, 255, 255));
-    }*/
-    //cv::drawMatches(object, objectKeyPoints, nextInput, sceneKeyPoints, filteredMatches, img);
+    //pour chaque image, si il y a assez des matches, afficher la boite de contour
     for (auto i = 0; i < filteredMatches.size(); ++i)
     {
         if (filteredMatches[i].size() > minPointMatches)
         {
             //std::cout << "image " << objectNames[i] << ", matches:" << filteredMatches[i].size() << std::endl;
-            drawBindingBox(img, i, false);
+            drawBindingBox(img, i);
         }
     }
     cv::imshow("scene", img);
@@ -163,6 +159,7 @@ void draw()
 
 void video(const std::string videoname = "")
 {
+    //lecture de la vidéo
     cv::VideoCapture cap;
     if (videoname != "")
         cap.open(videoname);
@@ -174,6 +171,7 @@ void video(const std::string videoname = "")
 
     cap >> nextInput;
 
+    //pour chaque frame de la vidéo
     while (!nextInput.empty())
     {
         cap >> nextInput;
@@ -184,6 +182,7 @@ void video(const std::string videoname = "")
     }
 }
 
+//donne une couleur aléatoire pour chaque contour des images
 void initColors()
 {
     for (auto i = 0; i < colors.size(); ++i)
@@ -208,19 +207,19 @@ int main()
     objects = getAllImagesInPath(resourcePath);
     filteredMatches.resize(objects.size());
     colors.resize(objects.size());
+
+    //récupère les features et coins de chaques images
     for (auto object : objects)
     {
         getImageEdges(object);
         computeImage(object);
     }
     initColors();
+    //entraine le bfmatcher avec tous les descriptors de chaque images
     bfMatcher.add(objectsDescriptor);
     bfMatcher.train();
-    //cv::waitKey();
 
     video(resourcePath + videoPath);
     cv::waitKey();
-    //waitKey(0); // Wait for any keystroke in the window
-
     return 0;
 }

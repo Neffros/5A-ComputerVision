@@ -11,7 +11,7 @@
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/calib3d.hpp>
 
-
+//print le type d'une image
 void MatType(cv::Mat inputMat)
 {
     int inttype = inputMat.type();
@@ -44,6 +44,7 @@ std::vector<cv::Point2f> purgePoints(std::vector<cv::Point2f> points, std::vecto
     return result;
 }
 
+//determine la carte de disparité 
 cv::Mat computeDisparity(cv::Mat& rectifiedA, cv::Mat& rectifiedB)
 {
     cv::Ptr<cv::StereoBM> sbm = cv::StereoBM::create();
@@ -66,6 +67,7 @@ cv::Mat computeDisparity(cv::Mat& rectifiedA, cv::Mat& rectifiedB)
 
     return res8U;
 }
+//determine la matrice de rectification et l'applique dans les images réctifiés
 void rectify(cv::Mat& imageA, cv::Mat& imageB, std::vector<cv::Point2f>& pointsA, std::vector<cv::Point2f>& pointsB, cv::Mat& rectifiedA, cv::Mat& rectifiedB)
 {
     cv::Mat fundamentals = cv::findFundamentalMat(pointsA, pointsB);
@@ -75,7 +77,8 @@ void rectify(cv::Mat& imageA, cv::Mat& imageB, std::vector<cv::Point2f>& pointsA
     cv::warpPerspective(imageA, rectifiedA, rectA, imageA.size());
     cv::warpPerspective(imageB, rectifiedB, rectB, imageB.size());
 }
-void displayMatchings(cv::Mat imageA, cv::Mat imageB, std::vector<cv::Point2f> pointsA, std::vector<cv::Point2f> pointsB)
+//affiche la différence des mêmes features dans les deux images
+void displayMatchings(const cv::Mat imageA, const cv::Mat imageB, std::vector<cv::Point2f> pointsA, std::vector<cv::Point2f> pointsB)
 {
     cv::Mat img = imageA.clone();
     for (int i = 0; i < pointsA.size(); ++i)
@@ -85,7 +88,8 @@ void displayMatchings(cv::Mat imageA, cv::Mat imageB, std::vector<cv::Point2f> p
     cv::imshow("output", img);
 }
 
-void findMatchings(cv::Mat& imageA, cv::Mat& imageB, std::vector<cv::Point2f>& pointsA, std::vector<cv::Point2f>& pointsB)
+//trouve les features similaire entre les deux images et trouve les différences
+void findMatchings(const cv::Mat imageA, const cv::Mat imageB, std::vector<cv::Point2f>& pointsA, std::vector<cv::Point2f>& pointsB)
 {
     std::vector<uchar> features_found;
     std::vector<float> errors;
@@ -110,7 +114,6 @@ int main()
 
     cv::cvtColor(image1, image1, cv::COLOR_BGR2GRAY);
     cv::cvtColor(image2, image2, cv::COLOR_BGR2GRAY);
-
 
     findMatchings(image1, image2, pointsA, pointsB);
     findMatchings(image2, image1, pointsB, pointsA);

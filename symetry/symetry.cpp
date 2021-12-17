@@ -26,6 +26,11 @@ cv::Mat imgDescriptor;
 std::vector<cv::KeyPoint> flippedKeyPoints;
 cv::Mat flippedDescriptor;
 
+std::vector<cv::Point2f> points;
+std::vector<cv::Point2f> flippedPoints;
+std::vector<cv::Point2f> barycenters;
+
+
 std::vector<std::vector<cv::DMatch>> matches;
 std::vector<cv::DMatch> filteredMatches;
 void MatType(cv::Mat inputMat)
@@ -51,16 +56,21 @@ void MatType(cv::Mat inputMat)
 
 }
 
-void computeImage(cv::Mat img, cv::Mat flippedImg)
+//determine les matches entre l'image invertis et la vrai image et les filtres
+void getGoodMatches(cv::Mat img, cv::Mat flippedImg)
 {
-
+	//trouve les features de l'image 
 	orb->detect(img, imgKeyPoints);
 	orb->compute(img, imgKeyPoints, imgDescriptor);
 
+	//trouve les features de l'image flipped
 	orb->detect(flippedImg, flippedKeyPoints);
 	orb->compute(flippedImg, flippedKeyPoints, flippedDescriptor);
 
+	//trouve les matches
 	bfMatcher->knnMatch(imgDescriptor, flippedDescriptor, matches, 2);
+
+	//filtre les matches pour guarder que ceux qui sont utilisables
 	for (auto match : matches)
 	{
 		if (match[0].distance < distanceCoeff * match[1].distance)
@@ -70,12 +80,9 @@ void computeImage(cv::Mat img, cv::Mat flippedImg)
 	}
 }
 
-void draw(cv::Mat img) 
+//recupère les points de match dans les deux images et leur barycentres
+void getAllPoints(const cv::Mat img)
 {
-	std::vector<cv::Point2f> points;
-	std::vector<cv::Point2f> flippedPoints;
-	std::vector<cv::Point2f> barycenters;
-
 	for (auto match : filteredMatches)
 	{
 		cv::Point2f point;
@@ -86,27 +93,34 @@ void draw(cv::Mat img)
 		flippedPoint = flippedKeyPoints[match.trainIdx].pt;
 		flippedPoint.x = img.cols - flippedPoint.x;
 		barycenterPoint = cv::Point2f((point.x + flippedPoint.x) / 2, (point.y + flippedPoint.y) / 2);
-		
+
 		points.push_back(point);
 		flippedPoints.push_back(flippedPoint);
 		barycenters.push_back(barycenterPoint);
 	}
+}
+cv::Mat getMaskAndDisplayMatching(const cv::Mat img) 
+{
 	cv::Scalar green(0, 255, 0);
 	cv::Scalar red(0, 0, 255);
 	cv::Mat mask = Mat::zeros(img.size(), CV_8UC1);
+	cv::Mat matchingDisplay = img.clone();
 
 	for (auto i = 0; i < points.size(); ++i)
 	{
-		//cv::circle(img, points[i], 2, cv::Scalar(255, 255, 255));
-		//cv::circle(img, flippedPoints[i], 2, cv::Scalar(0, 0, 0));
-		//cv::line(img, points[i], flippedPoints[i], green);
-		//cv::circle(img, barycenters[i], 5, red);
+		cv::line(matchingDisplay, points[i], flippedPoints[i], green);
+		cv::circle(matchingDisplay, barycenters[i], 5, red);
 		cv::circle(mask, barycenters[i], 1, 255);
 	}
 	MatType(mask);
 	cv::imshow("mask", mask);
+	cv::imshow("matching", matchingDisplay);
+	return mask;
+}
 
-	cv::waitKey();
+void getSymetryLine(const cv::Mat img, const cv::Mat mask)
+{
+	//cv::waitKey();
 	std::vector<cv::Vec2f> lines; // will hold the results of the detection
 	cv::HoughLines(mask, lines, 1, CV_PI / 180, 150, 0, 0); // runs the actual detection
 
@@ -129,12 +143,15 @@ int main()
 {
 	cv::Mat img = cv::imread(resourcePath + imageName);
 	cv::Mat flippedImg;
-	cv::Mat res;
 
+	cv::imshow("original", img);
+
+	//flip sur l'axe des Y
 	cv::flip(img, flippedImg, 1);
 
-	computeImage(img, flippedImg);
-	draw(img);
-	//cv::drawMatches(img, imgKeyPoints, flippedImg, flippedKeyPoints, filteredMatches, res);
+	getGoodMatches(img, flippedImg);
+	getAllPoints(img);
+	cv::Mat mask = getMaskAndDisplayMatching(img);
+	getSymetryLine(img, mask);
 	return 0;
 }

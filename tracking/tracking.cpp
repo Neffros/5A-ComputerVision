@@ -23,6 +23,7 @@ std::vector<float> errors;
 cv::Rect roi;
 cv::Point start(-1, -1);
 
+//print le type d'une image
 void MatType(cv::Mat inputMat)
 {
     int inttype = inputMat.type();
@@ -43,9 +44,9 @@ void MatType(cv::Mat inputMat)
     r += "C";
     r += (chans + '0');
     std::cout << "Mat is of type " << r << " and should be accessed with " << a << std::endl;
-
 }
 
+//prendre le contour de la listes de points à trouvé 
 void updateROI()
 {
     if (roi.empty()) return;
@@ -77,6 +78,8 @@ void updateROI()
     }
     roi = cv::Rect(cv::Point2f(minX, minY), cv::Point2f(maxX, maxY));
 }
+
+//callback qui définis la position du carré
 void CallBackFunc(int event, int x, int y, int flags, void* userdata)
 {
     if (event == cv::EVENT_LBUTTONDOWN)
@@ -100,14 +103,16 @@ void CallBackFunc(int event, int x, int y, int flags, void* userdata)
     }
 }
 
-
-void detectPoints(cv::Mat& img, cv::Mat mask)
+//detect les features dans une version grise de l'image
+void detectPoints(const cv::Mat img, const cv::Mat mask)
 {
     cv::cvtColor(img, grayInput, cv::COLOR_BGR2GRAY);
 
     cv::goodFeaturesToTrack(grayInput, prevPoints, 500, 0.01, 10, mask);
 }
-std::vector<cv::Point2f> purgePoints(std::vector<cv::Point2f>& points,std::vector<uchar>& status) 
+
+//on retire les points qui ne sont pas compris dans status
+std::vector<cv::Point2f> purgePoints(std::vector<cv::Point2f>& points, const std::vector<uchar>& status) 
 {
     std::vector<cv::Point2f> result;
     for (int i = 0; i < points.size(); ++i) {
@@ -116,7 +121,7 @@ std::vector<cv::Point2f> purgePoints(std::vector<cv::Point2f>& points,std::vecto
     return result;
 }
 
-std::vector<cv::Point2f> getPointsInRect(std::vector<cv::Point2f>& points)
+std::vector<cv::Point2f> getPointsInRect(const std::vector<cv::Point2f> points)
 {
     std::vector<cv::Point2f> result;
     for (auto point : points)
@@ -137,19 +142,12 @@ void trackPoints()
         prevPoints = nextPoints;
         //prevPoints.insert(prevPoints.end(), nextPoints.begin(), nextPoints.end());
 
+        //mask de la zone sélectionné par l'utilisateur
         cv::Mat mask = cv::Mat::zeros(nextInput.size(), CV_8U);
         cv::rectangle(mask, roi, cv::Scalar(255, 255, 255), -1);
-        //mask(roi) = (255, 255, 255);
         cv::imshow("mask", mask);
 
-        //cv::Mat maskPrev;
-        //cv::bitwise_and(prevInput, mask, maskPrev);
-        //cv::imshow("maskPrev", maskPrev);
-        //cv::imshow("maskContent", maskNextContent);
-
-        //cv::Mat maskPrevContent;
-        //cv::bitwise_and(mask, prevInput, maskPrevContent);
-
+        //si pas assez de point n'existe, essaye encore une fois d'en trouvé, sinon pas possible
         if (prevPoints.size() < 10)
         {
             detectPoints(prevInput, mask);
@@ -157,33 +155,35 @@ void trackPoints()
                 return;
         }
     
-        //cv::imshow("maskContent", maskPrevContent);
-        //prevPoints = getPointsInRect(prevPoints);
-        //nextPoints = getPointsInRect(nextPoints);
-
+        //detect movement of point from the current frame to the next frame 
         cv::calcOpticalFlowPyrLK(prevInput, nextInput, prevPoints, nextPoints, features_found, errors);
         
+        //on retire les points non suivis 
         prevPoints = purgePoints(prevPoints, features_found);
         nextPoints = purgePoints(nextPoints, features_found);
 
     }
+    //on stock la prochaine frame dans previnput 
     prevInput = nextInput.clone();
 }
 
 void draw()
 {
     cv::Mat img = nextInput.clone();
+    //dessine chaque point et la ligne de différence par rapport à la frame précédente
     for (int i = 0; i < nextPoints.size(); ++i)
     {
         cv::circle(img, nextPoints[i], 4, (255, 0, 0));
         cv::line(img, nextPoints[i], prevPoints[i], (255, 0, 0));
     }
+    //dessine le rectangle dans le quel on cherche les points 
     cv::rectangle(img, roi, (0, 0, 255));
     cv::imshow("output", img);
 }
 
 void video(const char* videoname = "")
 {
+    //lecture de la vidéo/cam
     cv::VideoCapture cap;
     if (videoname != "")
         cap.open(videoname);
@@ -195,11 +195,15 @@ void video(const char* videoname = "")
         std::cout << "Could not open video" << std::endl;
         return;
     }
+    //lire la première frame
     cap >> nextInput;
-    MatType(nextInput);
 
+    //MatType(nextInput);
+
+    //pour chaque frame
     while (!nextInput.empty())
     {
+        //si un carré à été formé
         if (start.x < 0)
         {
             trackPoints();
@@ -216,6 +220,7 @@ void video(const char* videoname = "")
 int main()
 {
     cv::namedWindow("output");
+    //init callback
     cv::setMouseCallback("output", CallBackFunc, NULL);
     const char* videoname = "./resources/vid2.mp4";
     //const char* videoname = "";
